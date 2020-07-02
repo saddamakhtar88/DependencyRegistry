@@ -1,6 +1,6 @@
 # DependencyRegistry
 
-A small yet powerful API for managing Swift based application dependencies
+A small and basic API for managing dependencies in Swift based applications
 
 ## Installation
 
@@ -17,58 +17,79 @@ dependencies: [
 All the APIs are exposed as static functions 
 
 
-### Registering a service
+### Registration
 
-This only registers a service. An instance of the service will be created on resolution.
+Giving a short name to the registry
 
 ```
-// Giving a short name to the registry. (Optional)
 public typealias DI = DependencyRegistry
+```
 
+Registering a concrete class against a protocol
+
+```
 DI.register { () -> AnalyticsService in
-    AnalyticsServiceProvider() // A class confirming ot NameService
+    AnalyticsServiceProvider() // A class confirming to AnalyticsService
 }
+```
 
+Registering a service which requires another service
+
+```
 DI.register { () -> UserActionService in
     UserActionServiceProvider(nameService: DI.resolve())
 }
 ```
 
-** Note: ** Do not register an optional type.
+**Note:** 
+The registration API only registers a service. An instance of the service will be created lazily on resolution 
 
 
-### Resolving a service
 
-resolve() and optional() can be used to resolve any registered service.
+### Resolution
+ 
+ Injecting  a required dependency
  
 ```
-// Injecting  in a property
 var analyticsServiceProvider: AnalyticsService = DI.resolve() // Required resolution
+
 DI.resolve(scope: Scope.unique) // to resolve a new instance instead of a globally shared 
+```
 
+Injecting  an optional dependency
+
+```
 var userActionServiceProvider: UserActionService? = DI.optional() // Optional resolution
-DI.optional(scope: Scope.unique) // to resolve a new instance instead of a globally shared
 
-// Injecting  in a constructor
+DI.optional(scope: Scope.unique) // to resolve a new instance instead of a globally shared
+```
+
+Injecting in a constructor
+
+```
 class UserViewModel {
+    
     private let analyticsServiceProvider: AnalyticsService
+    
     init(analyticsServiceProvider: AnalyticsService = DI.resolve()) {
         self.analyticsServiceProvider = analyticsServiceProvider
     }
 }
-
 ``` 
 
 
-### Resolving a service using @propertyWrapper
+### Using @propertyWrapper
 
 ```
 @Inject var analyticsServiceProvider: AnalyticsService // Equivalent to DI.resolve()
+
 @Inject(scope: Scope.unique)
+```
 
+```
 @OptionalInject var userActionServiceProvider: UserActionService? // Equivalent to DI.optional()
-@OptionalInject(scope: Scope.unique)
 
+@OptionalInject(scope: Scope.unique)
 ```
 
 ## Public APIs
@@ -76,28 +97,64 @@ class UserViewModel {
 ### DependencyRegistry class
 
 #### Enums
+
 ```
 enum Scope {
     case global // default
     case unique
 }
-```
+``` 
 
 #### Typealias 
+
 ```
 - Instantiator<Service> = () -> Service
 ```
 
+Required by register API and internally used by resolve API to create an instance.
+
+
 #### Functions 
+
 ```
 - func register<Service>(instantiator: @escaping Instantiator<Service>)
+```
+
+- Registering an optional will always result in resolution to nil 
+- Ensure to call register before resolving
+- Reregistration for the same type will override the previous registration. Global instance if already resolved will still exist and will be resolved when requested. New registration will impact resolution for .unique scope
+
+```
 - func resolve<Service>(scope: Scope = .global) -> Service
+```
+
+- Resolves a registered type.
+- Use this for non-optional dependencies
+- Uses Swift's type inference to identify the type to resolve
+
+```
 - func optional<Service>(scope: Scope = .global) -> Service?
+```
+
+- Use this resolve optional dependencies
+
+```
 - func reset()
 ```
 
+- Resets the registrations and service instances
+
+
 #### Property Wrappers
+
 ```
 @Inject
+```
+
+Equivalent to resolve() API
+
+```
 @OptionalInject
 ```
+
+Equivalent to optional() API
