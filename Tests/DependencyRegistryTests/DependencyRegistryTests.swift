@@ -46,7 +46,26 @@ final class DependencyRegistryTests: XCTestCase {
         XCTAssert(PropertyWrappersInstances().publisher is EventPublisher)
     }
     
-    func testReset() {
+    func testResetOnReregister() {
+        // Setup
+        DependencyRegistry.reset()
+        
+        // Execute and assert
+        DependencyRegistry.register { () -> Publisher in EventPublisher() }
+        let publisherService: Publisher = DependencyRegistry.resolve()
+        XCTAssertNotNil(publisherService)
+        
+        // Execute and assert
+        let reResolvedPublisherService: Publisher = DependencyRegistry.resolve()
+        XCTAssert(publisherService === reResolvedPublisherService)
+        
+        // Execute and assert
+        DependencyRegistry.register { () -> Publisher in EventPublisher() }
+        let reRegisteredPublisherService: Publisher = DependencyRegistry.resolve()
+        XCTAssert(publisherService !== reRegisteredPublisherService)
+    }
+    
+    func testResetAll() {
         // Setup
         DependencyRegistry.reset()
         
@@ -64,7 +83,8 @@ final class DependencyRegistryTests: XCTestCase {
     static var allTests = [
         ("testRegistryResolutions", testRegistryResolutions),
         ("testPropertyWrappers", testPropertyWrappers),
-        ("testReset", testReset),
+        ("testResetOnReregister", testResetOnReregister),
+        ("testResetAll", testResetAll),
     ]
 }
 

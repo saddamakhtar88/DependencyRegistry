@@ -1,6 +1,6 @@
-# DependencyRegistry
+# Dependency Registry
 
-A small and basic API for managing dependencies in Swift based applications
+A small yet powerful API for managing dependencies in Swift based applications
 
 ## Installation
 
@@ -42,7 +42,8 @@ DI.register { () -> UserActionService in
 ```
 
 **Note:** 
-The registration API only registers a service. An instance of the service will be created lazily on resolution 
+The registration API only registers a service. An instance of the service will be created lazily on resolution
+Re-registering a service will remove any global instance of that service (if already available)
 
 
 
@@ -63,6 +64,9 @@ var userActionServiceProvider: UserActionService? = DI.optional() // Optional re
 
 DI.optional(scope: Scope.unique) // to resolve a new instance instead of a globally shared
 ```
+
+**Note:** 
+The default .global scope is applicable only for reference types. A 'value' type will always be resolved to a new instance.
 
 Injecting in a constructor
 

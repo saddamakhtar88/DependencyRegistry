@@ -13,6 +13,7 @@ public class DependencyRegistry {
     static private var instances: [Int: Any] = [:]
     
     static public func register<Service>(instantiator: @escaping Instantiator<Service>) {
+        remove(type: Service.self)
         registrations[identifier(type: Service.self)] = instantiator
     }
     
@@ -66,6 +67,13 @@ public class DependencyRegistry {
     
     static private func persist<Service>(type: Service.Type, instance: Service) {
         instances[identifier(type: type)] = instance
+    }
+    
+    static private func remove<Service>(type: Service.Type) {
+        guard let index = instances.index(forKey: identifier(type: type)) else {
+            return
+        }
+        instances.remove(at: index)
     }
     
     static private func identifier<Service>(type: Service.Type) -> Int  {
