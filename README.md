@@ -32,6 +32,13 @@ DI.register { () -> AnalyticsService in
     AnalyticsServiceProvider() // A class confirming to AnalyticsService
 }
 ```
+Or same protocol with a different service using a tag
+
+```
+DependencyRegistry.register ({ () -> AnalyticsService in 
+    ABCAnalyticsServiceProvider()     
+}, tag: "ABC")
+```
 
 Registering a service which requires another service
 

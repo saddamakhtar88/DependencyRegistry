@@ -9,24 +9,28 @@ public class DependencyRegistry {
     
     public typealias Instantiator<Service> = () -> Service
     
-    static private var registrations: [Int: Instantiator<Any>] = [:]
-    static private var instances: [Int: Any] = [:]
+    static private var registrations: [String: Instantiator<Any>] = [:]
+    static private var instances: [String: Any] = [:]
     
-    static public func register<Service>(instantiator: @escaping Instantiator<Service>) {
-        remove(type: Service.self)
-        registrations[identifier(type: Service.self)] = instantiator
+    static public func register<Service>(_ instantiator: @escaping Instantiator<Service>, tag: String? = nil) {
+        remove(type: Service.self, tag: tag)
+        registrations[identifier(type: Service.self, tag: tag)] = instantiator
     }
     
-    static public func resolve<Service>(scope: Scope = .global) -> Service {
-        guard let instance = resolve(type: Service.self, scope: scope) else {
+    static public func resolve<Service>(scope: Scope = .global, tag: String? = nil) -> Service {
+        guard let instance = resolve(type: Service.self, scope: scope, tag: tag) else {
             fatalError("Required dependency: '\(Service.self)' not resolved. Ensure the service is registered. Use optional() instead of resolve() to resolve optional dependencies.")
         }
         
         return instance
     }
     
-    static public func optional<Service>(scope: Scope = .global) -> Service? {
-        resolve(type: Service.self, scope: scope)
+    static public func resolve<Service>(tag: String?) -> Service {
+        return DependencyRegistry.resolve(scope: .global, tag: tag)
+    }
+    
+    static public func optional<Service>(scope: Scope = .global, tag: String? = nil) -> Service? {
+        resolve(type: Service.self, scope: scope, tag: tag)
     }
     
     static public func reset() {
@@ -34,30 +38,30 @@ public class DependencyRegistry {
         instances = [:]
     }
     
-    static private func resolve<Service>(type: Service.Type, scope: Scope) -> Service? {
+    static private func resolve<Service>(type: Service.Type, scope: Scope, tag: String?) -> Service? {
         var instance: Service?
         if scope == .unique {
-            instance = instantiate(type: Service.self)
+            instance = instantiate(type: Service.self, tag: tag)
         }
         
-        if let existingInstance = instances[identifier(type: Service.self)] as? Service {
+        if let existingInstance = instances[identifier(type: Service.self, tag: tag)] as? Service {
             instance = existingInstance
         } else {
-            guard let newInstance = instantiate(type: Service.self) else {
+            guard let newInstance = instantiate(type: Service.self, tag: tag) else {
                 return nil
             }
-            persist(type: type, instance: newInstance)
+            persist(type: type, instance: newInstance, tag: tag)
             instance = newInstance
         }
         
         return instance
     }
     
-    static private func instantiate<Service>(type: Service.Type) -> Service? {
+    static private func instantiate<Service>(type: Service.Type, tag: String?) -> Service? {
         var instance: Service?
-        if let instantiator = registrations[identifier(type: type)] {
+        if let instantiator = registrations[identifier(type: type, tag: tag)] {
             if let newInstance = instantiator() as? Service {
-                instances[identifier(type: type)] = newInstance
+                instances[identifier(type: type, tag: tag)] = newInstance
                 instance = newInstance
             }
         }
@@ -65,26 +69,27 @@ public class DependencyRegistry {
         return instance
     }
     
-    static private func persist<Service>(type: Service.Type, instance: Service) {
-        instances[identifier(type: type)] = instance
+    static private func persist<Service>(type: Service.Type, instance: Service, tag: String?) {
+        instances[identifier(type: type, tag: tag)] = instance
     }
     
-    static private func remove<Service>(type: Service.Type) {
-        guard let index = instances.index(forKey: identifier(type: type)) else {
+    static private func remove<Service>(type: Service.Type, tag: String?) {
+        guard let index = instances.index(forKey: identifier(type: type, tag: tag)) else {
             return
         }
         instances.remove(at: index)
     }
     
-    static private func identifier<Service>(type: Service.Type) -> Int  {
-        ObjectIdentifier(Service.self).hashValue
+    static private func identifier<Service>(type: Service.Type, tag: String?) -> String  {
+        "\(ObjectIdentifier(Service.self).hashValue)\(tag ?? "")"
     }
 }
 
 @propertyWrapper
 public struct Inject<Service> {
     private var service: Service
-    public init(scope: Scope = .global) { service = DependencyRegistry.resolve(scope: scope) }
+    public init(scope: Scope = .global, tag: String? = nil) { service = DependencyRegistry.resolve(scope: scope, tag: nil) }
+    public init(tag: String?) { service = DependencyRegistry.resolve(scope: .global, tag: tag) }
     public var wrappedValue: Service {
         get { service }
     }
@@ -93,7 +98,8 @@ public struct Inject<Service> {
 @propertyWrapper
 public struct OptionalInject<Service> {
     private var service: Service?
-    public init(scope: Scope = .global) { service = DependencyRegistry.optional(scope: scope) }
+    public init(scope: Scope = .global, tag: String? = nil) { service = DependencyRegistry.optional(scope: scope, tag: tag) }
+    public init(tag: String?) { service = DependencyRegistry.optional(scope: .global, tag: tag) }
     public var wrappedValue: Service? {
         get { service }
     }

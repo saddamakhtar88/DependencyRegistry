@@ -7,9 +7,14 @@ final class DependencyRegistryTests: XCTestCase {
         DependencyRegistry.reset()
         
         // Execute and assert
-        DependencyRegistry.register { () -> Messaging in SMSService() }
+        DependencyRegistry.register ({ () -> Messaging in SMSService1() })
         let messagingService: Messaging = DependencyRegistry.resolve()
-        XCTAssert(messagingService is SMSService)
+        XCTAssert(messagingService is SMSService1)
+        
+        // Execute and assert
+        DependencyRegistry.register ({ () -> Messaging in SMSService2() }, tag: "Sms2")
+        let newMessagingService: Messaging = DependencyRegistry.resolve(tag: "Sms2")
+        XCTAssert(newMessagingService is SMSService2)
         
         // Execute and assert
         let reResolvedMessagingService: Messaging = DependencyRegistry.resolve()
@@ -37,8 +42,8 @@ final class DependencyRegistryTests: XCTestCase {
         }
         
         // Execute and assert
-        DependencyRegistry.register { () -> Messaging in SMSService() }
-        XCTAssert(PropertyWrappersInstances().messaging is SMSService)
+        DependencyRegistry.register { () -> Messaging in SMSService1() }
+        XCTAssert(PropertyWrappersInstances().messaging is SMSService1)
         XCTAssertNil(PropertyWrappersInstances().publisher)
         
         // Execute and assert
