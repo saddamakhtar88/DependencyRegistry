@@ -90,8 +90,9 @@ final class DependencyRegistryTests: XCTestCase {
 
 // MARK:- Sample types
 
-private protocol Messaging: class {}
-private class SMSService: Messaging {}
+private protocol Messaging: AnyObject {}
+private class SMSService1: Messaging {}
+private class SMSService2: Messaging {}
 
-private protocol Publisher: class {}
+private protocol Publisher: AnyObject {}
 private class EventPublisher: Publisher {}
